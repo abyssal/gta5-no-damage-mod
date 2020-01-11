@@ -15,7 +15,7 @@ namespace DarkViperOhko
     public class DeathCountCounterScript : Script
     {
         private TextElement deathCounter = new TextElement("0", new PointF(1100, 600), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
-        public static string noDrawPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "okho_no_draw_counter.txt");
+        public static string noDrawPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_no_draw_counter.txt");
 
         public DeathCountCounterScript()
         {
@@ -35,7 +35,7 @@ namespace DarkViperOhko
     {
         public static int deaths = 0;
         public static long lastDeathTime = 0;
-        public static string deathSavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "okho_stats.txt");
+        public static string deathSavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt");
 
         public DeathCountScript()
         {
@@ -61,7 +61,7 @@ namespace DarkViperOhko
                 lastDeathTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 try
                 {
-                    System.IO.File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "okho_stats.txt"), deaths.ToString());
+                    System.IO.File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt"), deaths.ToString());
                 } catch (Exception ex)
                 {
                     Notification.Show(ex.Message);
