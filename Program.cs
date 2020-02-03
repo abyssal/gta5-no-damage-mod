@@ -12,34 +12,34 @@ using System.IO;
 
 namespace DarkViperOhko
 {
-    public class DeathCountCounterScript : Script
+    public class DeathCounter : Script
     {
-        private TextElement deathCounter = new TextElement("0", new PointF(1100, 600), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
+        private readonly TextElement deathCounter = new TextElement("0", new PointF(1100, 450), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
         public static string noDrawPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_no_draw_counter.txt");
 
-        public DeathCountCounterScript()
+        public DeathCounter()
         {
-            this.Tick += DeathCountCounterScript_Tick;
+            Tick += DeathCountCounterScript_Tick;
         }
 
         private void DeathCountCounterScript_Tick(object sender, EventArgs e)
         {
             if (!File.Exists(noDrawPath))
             {
-                deathCounter.Caption = DeathCountScript.deaths.ToString() + " death" + (DeathCountScript.deaths != 1 ? "s" : "");
-                deathCounter.Draw();
+                deathCounter.Caption = DeathTracker.deaths.ToString() + " death" + (DeathTracker.deaths != 1 ? "s" : "");
+                deathCounter.ScaledDraw();
             }
         }
     }
-    public class DeathCountScript: Script
+    public class DeathTracker: Script
     {
         public static int deaths = 0;
         public static long lastDeathTime = 0;
         public static string deathSavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt");
 
-        public DeathCountScript()
+        public DeathTracker()
         {
-            this.Tick += DeathCountScript_Tick;
+            Tick += DeathCountScript_Tick;
             try
             {
                 if (File.Exists(deathSavePath))
@@ -61,7 +61,7 @@ namespace DarkViperOhko
                 lastDeathTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 try
                 {
-                    System.IO.File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt"), deaths.ToString());
+                    File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt"), deaths.ToString());
                 } catch (Exception ex)
                 {
                     Notification.Show(ex.Message);
@@ -76,12 +76,11 @@ namespace DarkViperOhko
         private Model trevor;
         public OhkoScript()
         {
-            var mod = new Model(PedHash.Trevor);
-            mod.Request(500);
+            var mod = new Model(PedHash.Trevor); 
             trevor = mod;
-            this.Tick += OhkoScript_Tick;
+            Tick += OhkoScript_Tick;
             KeyUp += OhkoScript_KeyUp;
-            this.Interval = 1000;
+            Interval = 1000;
             Notification.Show("Loaded Abyssal's One-Hit Knock-Out.");
         }
 
@@ -145,8 +144,16 @@ namespace DarkViperOhko
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception e2)
             {
+                try
+                {
+                    Notification.Show("Exception during tick: " + e2.Message);
+                }
+                catch (Exception)
+                {
+
+                }
             }
         }
     }
