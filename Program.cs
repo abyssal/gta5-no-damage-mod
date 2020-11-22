@@ -9,37 +9,30 @@ using System.Drawing;
 using GTA.UI;
 using Microsoft.Win32;
 using System.IO;
+using System.Windows.Forms;
 
 namespace DarkViperOhko
 {
-    public class DeathCounter : Script
+    public class OhkoConstants
     {
-        private readonly TextElement deathCounter = new TextElement("0", new PointF(1100, 450), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
-        public static string noDrawPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_no_draw_counter.txt");
+        public static bool enabled = true;
+        public static IniFile Configuration = new IniFile(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_config.ini"));
 
-        public DeathCounter()
-        {
-            Tick += DeathCountCounterScript_Tick;
-        }
-
-        private void DeathCountCounterScript_Tick(object sender, EventArgs e)
-        {
-            if (!File.Exists(noDrawPath))
-            {
-                deathCounter.Caption = DeathTracker.deaths.ToString() + " death" + (DeathTracker.deaths != 1 ? "s" : "");
-                deathCounter.ScaledDraw();
-            }
-        }
+        public static Keys IncreaseDeathCount = (Keys) Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "IncreaseDeathCount"));
+        public static Keys DecreaseDeathCount = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "DecreaseDeathCount"));
+        public static Keys ToggleMod = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "ToggleMod"));
+        public static bool ShowDefaultDeathCounter = bool.Parse(Configuration.IniReadValue("Display", "ShowDefaultDeathCounter"));
     }
     public class DeathTracker: Script
     {
-        public static int deaths = 0;
-        public static long lastDeathTime = 0;
+        public static int deaths;
+        public static bool isDead;
         public static string deathSavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt");
 
         public DeathTracker()
         {
             Tick += DeathCountScript_Tick;
+            KeyUp += DeathTracker_KeyUp;
             try
             {
                 if (File.Exists(deathSavePath))
@@ -49,54 +42,93 @@ namespace DarkViperOhko
             }
             catch (Exception)
             {
-
+                Notification.Show("Failed to load deaths. Is ohko_stats.txt corrupt?");
             }
         }
 
+        private void DeathTracker_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == OhkoConstants.IncreaseDeathCount)
+            {
+                SetDeathCount(deaths + 1);
+            } else if (e.KeyCode == OhkoConstants.DecreaseDeathCount)
+            {
+                SetDeathCount(deaths - 1);
+            }
+        }
+
+        private void SetDeathCount(int newd)
+        {
+            deaths = newd;
+            try
+            {
+                File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt"), deaths.ToString());
+            }
+            catch (Exception ex)
+            {
+                Notification.Show(ex.Message);
+            }
+        }
+        
+        private readonly TextElement deathCounter = new TextElement("0", new PointF(1100, 450), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
+
+        private readonly TextElement debug = new TextElement("0", new PointF(100, 450), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
+
+        private long tick = 0;
+        private readonly TextElement ticke = new TextElement("0", new PointF(100, 350), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
+    
         private void DeathCountScript_Tick(object sender, EventArgs e)
         {
-            if (Game.Player.IsDead && (DateTimeOffset.Now.ToUnixTimeMilliseconds() - lastDeathTime) > 10000)
+            if (isDead && !Game.Player.IsDead)
             {
-                deaths++;
-                lastDeathTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-                try
-                {
-                    File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_stats.txt"), deaths.ToString());
-                } catch (Exception ex)
-                {
-                    Notification.Show(ex.Message);
-                }
+                isDead = false;
             }
+            else if (!isDead && Game.Player.IsDead)
+            {
+                isDead = true;
+                SetDeathCount(deaths + 1);
+            }
+            
+            if (OhkoConstants.ShowDefaultDeathCounter && OhkoConstants.enabled)
+            {
+                deathCounter.Caption = deaths + " death" + (DeathTracker.deaths != 1 ? "s" : "");
+                deathCounter.ScaledDraw();
+            }
+
+            //debug.Caption = $"isDead: {isDead} GameDead: {Game.Player.IsDead}";
+            //debug.ScaledDraw();
+            //tick++;
+            //ticke.Caption = tick.ToString();
+            //ticke.ScaledDraw();
         }
     }
 
     public class OhkoScript: Script
     {
-        private bool enabled = true;
-        private Model trevor;
+        private Model trevor = new Model(PedHash.Trevor);
         public OhkoScript()
         {
-            var mod = new Model(PedHash.Trevor); 
-            trevor = mod;
             Tick += OhkoScript_Tick;
             KeyUp += OhkoScript_KeyUp;
             Interval = 1000;
-            Notification.Show("Loaded Abyssal's One-Hit Knock-Out.");
+            Notification.Show("Loaded One-Hit Knock-Out.");
         }
 
-        private void OhkoScript_KeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
+        private void OhkoScript_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == System.Windows.Forms.Keys.F8)
+            if (e.KeyCode == OhkoConstants.ToggleMod)
             {
-                enabled = !enabled;
-                if (!enabled)
+                OhkoConstants.enabled = !OhkoConstants.enabled;
+                if (!OhkoConstants.enabled)
                 {
                     Function.Call(Hash.SET_ENTITY_MAX_HEALTH, Game.Player.Character.Handle, 200);
                     Function.Call(Hash.SET_ENTITY_HEALTH, Game.Player.Character.Handle, 200);
+
                     Game.Player.IsSpecialAbilityEnabled = true;
                     Game.Player.RefillSpecialAbility();
                 }
-                new TextElement(enabled ? "OHKO Enabled" : "OHKO Disabled", new PointF(Screen.Width / 2, Screen.Height / 2), 1.0f).ScaledDraw();
+
+                Notification.Show(OhkoConstants.enabled ? "OHKO Enabled" : "OHKO Disabled");
                 OhkoScript_Tick(null, null);
             }
         }
@@ -110,7 +142,7 @@ namespace DarkViperOhko
         {
             try
             {
-                if (!enabled)
+                if (!OhkoConstants.enabled)
                 {
                     if (Function.Call<int>(Hash.GET_ENTITY_MAX_HEALTH, Game.Player.Character.Handle) != 200)
                     {
