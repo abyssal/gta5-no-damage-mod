@@ -13,15 +13,31 @@ using System.Windows.Forms;
 
 namespace DarkViperOhko
 {
-    public class OhkoConstants
+    public class OhkoConstants : Script
     {
         public static bool enabled = true;
         public static IniFile Configuration = new IniFile(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ohko_config.ini"));
 
-        public static Keys IncreaseDeathCount = (Keys) Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "IncreaseDeathCount"));
-        public static Keys DecreaseDeathCount = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "DecreaseDeathCount"));
-        public static Keys ToggleMod = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "ToggleMod"));
-        public static bool ShowDefaultDeathCounter = bool.Parse(Configuration.IniReadValue("Display", "ShowDefaultDeathCounter"));
+        public static Keys IncreaseDeathCount = (Keys) Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "IncreaseDeathCount") ?? "PageUp");
+        public static Keys DecreaseDeathCount = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "DecreaseDeathCount") ?? "PageDown");
+        public static Keys ToggleMod = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "ToggleMod") ?? "F8");
+        public static Keys ToggleDeathCounter = (Keys)Enum.Parse(typeof(Keys), Configuration.IniReadValue("Keybinds", "ToggleDeathCounter") ?? "F7");
+        public static bool ShowDefaultDeathCounter = bool.Parse(Configuration.IniReadValue("Display", "ShowDefaultDeathCounter") ?? "true");
+
+        public static bool RenderDeathCounter = ShowDefaultDeathCounter;
+
+        public OhkoConstants()
+        {
+            KeyUp += OhkoConstants_KeyUp;
+        }
+
+        private void OhkoConstants_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == ToggleDeathCounter)
+            {
+                RenderDeathCounter = !RenderDeathCounter;
+            }
+        }
     }
     public class DeathTracker: Script
     {
@@ -72,11 +88,6 @@ namespace DarkViperOhko
         
         private readonly TextElement deathCounter = new TextElement("0", new PointF(1100, 450), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
 
-        private readonly TextElement debug = new TextElement("0", new PointF(100, 450), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
-
-        private long tick = 0;
-        private readonly TextElement ticke = new TextElement("0", new PointF(100, 350), 1f, Color.White, GTA.UI.Font.ChaletComprimeCologne, Alignment.Left, true, true);
-    
         private void DeathCountScript_Tick(object sender, EventArgs e)
         {
             if (isDead && !Game.Player.IsDead)
@@ -89,17 +100,11 @@ namespace DarkViperOhko
                 SetDeathCount(deaths + 1);
             }
             
-            if (OhkoConstants.ShowDefaultDeathCounter && OhkoConstants.enabled)
+            if (OhkoConstants.RenderDeathCounter && OhkoConstants.enabled)
             {
-                deathCounter.Caption = deaths + " death" + (DeathTracker.deaths != 1 ? "s" : "");
+                deathCounter.Caption = deaths + " death" + (deaths != 1 ? "s" : "");
                 deathCounter.ScaledDraw();
             }
-
-            //debug.Caption = $"isDead: {isDead} GameDead: {Game.Player.IsDead}";
-            //debug.ScaledDraw();
-            //tick++;
-            //ticke.Caption = tick.ToString();
-            //ticke.ScaledDraw();
         }
     }
 
@@ -111,7 +116,7 @@ namespace DarkViperOhko
             Tick += OhkoScript_Tick;
             KeyUp += OhkoScript_KeyUp;
             Interval = 1000;
-            Notification.Show("Loaded One-Hit Knock-Out.");
+            Notification.Show("Loaded Abyssal's No Damage mod.");
         }
 
         private void OhkoScript_KeyUp(object sender, KeyEventArgs e)

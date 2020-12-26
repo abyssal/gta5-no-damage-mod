@@ -38,7 +38,13 @@ namespace DarkViperOhko
         /// Value Name
         public void IniWriteValue(string Section, string Key, string Value)
         {
-            WritePrivateProfileString(Section, Key, Value, this.path);
+            try
+            {
+                WritePrivateProfileString(Section, Key, Value, this.path);
+            } catch
+            {
+
+            }
         }
 
         /// <summary>
@@ -50,11 +56,16 @@ namespace DarkViperOhko
         /// <returns></returns>
         public string IniReadValue(string Section, string Key)
         {
-            StringBuilder temp = new StringBuilder(255);
-            int i = GetPrivateProfileString(Section, Key, "", temp,
-                                            255, this.path);
-            return temp.ToString();
-
+            try
+            {
+                StringBuilder temp = new StringBuilder(255);
+                int i = GetPrivateProfileString(Section, Key, "", temp,
+                                                255, this.path);
+                return temp.ToString();
+            } catch
+            {
+                return null;
+            }
         }
     }
 }
